@@ -293,7 +293,7 @@ Este projeto está sob a licença [MIT](LICENSE).
 
 ## 👨‍💻 Autor
 
-**Marcos Botelho** - [GitHub](https://github.com/mvcbotelho) | [LinkedIn](https://www.linkedin.com/in/marcos-botelho/)
+**Marcos Botelho** - [GitHub](https://github.com/mvcbotelho) | [LinkedIn](https://www.linkedin.com/in/mvcbotelho/)
 
 ## 📞 Suporte
 
