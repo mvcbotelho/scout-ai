@@ -1,0 +1,9 @@
+# docker-compose.yml
+
+services:
+  go-backend:
+    build:
+      context: ./go-backend
+    ports:
+      - "8080:8080"
+    # ❌ Remover volume para não sobrescrever o /app
