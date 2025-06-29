@@ -56,6 +56,19 @@ check: ## Verifica se tudo está funcionando
 	@curl -s http://localhost:8080/ping || echo "Servidor não está rodando"
 	@echo "Verificando banco de dados..."
 	@docker-compose ps db | grep -q "Up" || echo "Banco de dados não está rodando"
+	@echo "Verificando Ollama..."
+	@curl -s http://localhost:11434/api/tags || echo "Ollama não está rodando"
+
+# Comandos Ollama
+setup-ollama: ## Configura o Ollama (baixa o modelo)
+	@echo "Aguardando Ollama estar disponível..."
+	@sleep 10
+	@echo "Baixando modelo llama3.2..."
+	@curl -X POST http://localhost:11434/api/pull -H "Content-Type: application/json" -d '{"name": "llama3.2"}' || echo "Erro ao baixar modelo"
+	@echo "Ollama configurado com sucesso!"
+
+ollama-status: ## Verifica status do Ollama
+	@curl -s http://localhost:11434/api/tags || echo "Ollama não está disponível"
 
 # Comandos de deploy
 deploy: ## Deploy completo
@@ -63,3 +76,14 @@ deploy: ## Deploy completo
 	docker-compose build --no-cache
 	docker-compose up -d
 	@echo "Deploy concluído! Acesse http://localhost:8080"
+	@echo "Para configurar Ollama, execute: make setup-ollama"
+
+deploy-with-ollama: ## Deploy completo com configuração do Ollama
+	docker-compose down
+	docker-compose build --no-cache
+	docker-compose up -d
+	@echo "Aguardando serviços iniciarem..."
+	@sleep 15
+	@echo "Configurando Ollama..."
+	@make setup-ollama
+	@echo "Deploy completo! Acesse http://localhost:8080"

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mvcbotelho/scout-ai/handlers"
@@ -26,18 +27,49 @@ func main() {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		dbHost, dbUser, dbPassword, dbName, dbPort)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Erro ao conectar no banco:", err)
+	// Configuração do GORM com retry
+	var db *gorm.DB
+	var err error
+
+	log.Println("Conectando ao banco de dados...")
+	for i := 0; i < 5; i++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: nil, // Desabilitar logs do GORM para reduzir ruído
+		})
+		if err == nil {
+			break
+		}
+		log.Printf("Tentativa %d de conexão falhou: %v", i+1, err)
+		if i < 4 {
+			time.Sleep(2 * time.Second)
+		}
 	}
 
-	// Faz AutoMigrate
-	if err := db.AutoMigrate(&models.Player{}); err != nil {
-		log.Fatal("Erro ao fazer migração:", err)
+	if err != nil {
+		log.Fatal("Erro ao conectar no banco após 5 tentativas:", err)
 	}
 
 	// Configurar Ollama
 	configureOllama()
+
+	// Faz AutoMigrate com retry
+	log.Println("Iniciando migração do banco de dados...")
+	var migrationErr error
+	for i := 0; i < 3; i++ {
+		migrationErr = db.AutoMigrate(&models.Player{})
+		if migrationErr == nil {
+			log.Println("Migração concluída com sucesso")
+			break
+		}
+		log.Printf("Tentativa %d de migração falhou: %v", i+1, migrationErr)
+		if i < 2 {
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	if migrationErr != nil {
+		log.Printf("Aviso: Erro na migração (continuando mesmo assim): %v", migrationErr)
+	}
 
 	// Endpoints básicos
 	r.GET("/ping", func(c *gin.Context) {

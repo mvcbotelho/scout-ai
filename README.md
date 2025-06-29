@@ -62,8 +62,20 @@ cd scout-ai
 docker-compose up --build
 ```
 
+3. **Configure o Ollama (após os serviços iniciarem):**
+```bash
+# Aguarde alguns segundos e execute:
+make setup-ollama
+```
+
+**OU use o comando completo:**
+```bash
+make deploy-with-ollama
+```
+
 A aplicação estará disponível em `http://localhost:8080`
 O banco PostgreSQL estará disponível na porta `5432`
+O Ollama estará disponível na porta `11434`
 
 ### Opção 2: Execução Local
 
@@ -737,3 +749,97 @@ Efficiency = (Tackles * 0.8) + (Passes * 0.2)
 4. Adicione novas rotas no arquivo `main.go`
 5. Execute `db.AutoMigrate()` para o novo modelo
 6. Atualize as dependências se necessário com `go mod tidy` 
+
+## 🔧 Troubleshooting
+
+### Problemas Comuns
+
+#### **Erro no Ollama: "unknown command"**
+Se você ver erros como `Error: unknown command "sh" for "ollama"`:
+
+1. **Pare os containers:**
+```bash
+docker-compose down
+```
+
+2. **Reinicie com configuração correta:**
+```bash
+make deploy-with-ollama
+```
+
+#### **Ollama não está respondendo**
+Se os endpoints com `?ai=true` retornam análise estática:
+
+1. **Verifique se o Ollama está rodando:**
+```bash
+make ollama-status
+```
+
+2. **Configure o Ollama manualmente:**
+```bash
+make setup-ollama
+```
+
+3. **Verifique os logs:**
+```bash
+docker-compose logs ollama
+```
+
+#### **Modelo não encontrado**
+Se o Ollama não consegue baixar o modelo:
+
+1. **Verifique a conexão:**
+```bash
+curl http://localhost:11434/api/tags
+```
+
+2. **Baixe o modelo manualmente:**
+```bash
+curl -X POST http://localhost:11434/api/pull \
+  -H "Content-Type: application/json" \
+  -d '{"name": "llama3.2"}'
+```
+
+#### **Fallback para Análise Estática**
+Se o Ollama não estiver disponível, o sistema automaticamente usa análise estática. Você pode verificar isso no campo `ai_used: false` na resposta.
+
+### Comandos Úteis
+
+```bash
+# Verificar status de todos os serviços
+make check
+
+# Verificar status do Ollama
+make ollama-status
+
+# Configurar Ollama
+make setup-ollama
+
+# Logs do Ollama
+docker-compose logs ollama
+
+# Reiniciar apenas o Ollama
+docker-compose restart ollama
+```
+
+#### **Erro de Migração: "insufficient arguments"**
+Se você ver erros como `Erro ao fazer migração: insufficient arguments`:
+
+1. **Pare os containers:**
+```bash
+docker-compose down
+```
+
+2. **Limpe os volumes (cuidado - isso apaga os dados):**
+```bash
+docker-compose down -v
+```
+
+3. **Reinicie com configuração correta:**
+```bash
+make deploy-with-ollama
+```
+
+**Causa:** O banco de dados não estava totalmente pronto quando a aplicação tentou fazer a migração.
+
+**Solução:** Adicionamos healthcheck e retry automático para resolver este problema. 
