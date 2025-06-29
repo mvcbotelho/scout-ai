@@ -12,6 +12,10 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=scoutdb
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2
+      - OLLAMA_TEMPERATURE=0.7
+      - OLLAMA_TOP_P=0.9
 
   db:
     image: postgres:15
@@ -25,5 +29,23 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 10 &&
+        ollama pull llama3.2 &&
+        wait
+      "
+
 volumes:
   postgres_data:
+  ollama_data:

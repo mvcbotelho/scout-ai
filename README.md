@@ -15,6 +15,7 @@ O Scout AI é uma aplicação backend desenvolvida em Go que fornece uma API RES
 - **Docker** - Containerização da aplicação
 - **Docker Compose** - Orquestração de containers
 - **Testify** - Framework de testes
+- **Ollama3** - Modelo de linguagem local para análise inteligente
 
 ## 📁 Estrutura do Projeto
 
@@ -29,7 +30,10 @@ scout-ai/
     │   └── main.go            # Ponto de entrada da aplicação
     ├── handlers/
     │   ├── playerHandler.go   # Handlers para endpoints de jogadores
-    │   └── playerHandler_test.go # Testes dos handlers
+    │   ├── playerHandler_test.go # Testes dos handlers de jogadores
+    │   ├── analyzeHandler.go  # Handlers para análise com IA
+    │   ├── analyzeHandler_test.go # Testes dos handlers de análise
+    │   └── ollamaHandler.go   # Integração com Ollama3
     ├── models/
     │   └── player.go          # Modelo de dados do jogador
     ├── Dockerfile             # Configuração do container Docker
@@ -167,6 +171,121 @@ make check
   - **Status**: 200 OK
   - **Erro**: 404 Not Found (jogador não encontrado)
 
+### Análise de Jogadores (AI-Powered Analysis)
+
+#### Analisar Jogador Específico
+- **GET** `/analyze/players/:id`
+  - **Descrição**: Gera análise completa de um jogador usando IA
+  - **Parâmetros**: 
+    - `ai=true` - Usar Ollama3 para análise (opcional)
+  - **Validações**: ID deve ser um número válido
+  - **Resposta**:
+    ```json
+    {
+      "player_id": 1,
+      "player_name": "João Silva",
+      "analysis": "João Silva demonstra características de um atacante moderno e versátil. Com 25 anos, está na idade ideal para desenvolvimento e consolidação de carreira. Sua média de 0.5 gols por jogo é impressionante, demonstrando excelente eficiência de finalização. A participação de 120 passes na temporada mostra que não é apenas um finalizador, mas também contribui para a construção do jogo. Sua eficiência de 123.0 pontos o classifica como um jogador de nível Bom, adequado para competições de nível médio a alto. Recomendo atenção especial ao seu potencial de evolução, considerando sua idade e versatilidade técnica.",
+      "insights": [
+        "Excelente eficiência de finalização com 0.5 gols por jogo",
+        "Participação ativa na construção do jogo com 120 passes",
+        "Idade ideal para desenvolvimento e consolidação",
+        "Versatilidade técnica como atacante moderno"
+      ],
+      "rating": 8,
+      "position": "Atacante",
+      "team": "Flamengo",
+      "ai_used": true
+    }
+    ```
+  - **Status**: 200 OK
+  - **Erro**: 404 Not Found (jogador não encontrado)
+
+#### Analisar Todos os Jogadores
+- **GET** `/analyze/players`
+  - **Descrição**: Gera análise individual e comparativa de todos os jogadores
+  - **Parâmetros**: 
+    - `ai=true` - Usar Ollama3 para análise (opcional)
+  - **Resposta**:
+    ```json
+    {
+      "individual_analyses": [
+        {
+          "player_id": 1,
+          "player_name": "João Silva",
+          "analysis": "...",
+          "insights": [...],
+          "rating": 8,
+          "position": "Atacante",
+          "team": "Flamengo",
+          "ai_used": true
+        }
+      ],
+      "comparative_analysis": {
+        "total_players": 4,
+        "total_goals": 25,
+        "total_tackles": 185,
+        "total_passes": 735,
+        "positions_distribution": {
+          "Atacante": 1,
+          "Meio-campo": 1,
+          "Zagueiro": 1,
+          "Goleiro": 1
+        },
+        "best_scorer": {
+          "name": "João Silva",
+          "goals": 15,
+          "team": "Flamengo"
+        },
+        "best_tackler": {
+          "name": "Carlos Oliveira",
+          "tackles": 120,
+          "team": "São Paulo"
+        },
+        "best_passer": {
+          "name": "Pedro Santos",
+          "passes": 350,
+          "team": "Palmeiras"
+        },
+        "ai_comparative_analysis": "Análise comparativa gerada pelo Ollama3..."
+      }
+    }
+    ```
+  - **Status**: 200 OK
+
+#### Comparar Jogadores
+- **GET** `/analyze/compare?ids=1&ids=2&ids=3`
+  - **Descrição**: Compara dois ou mais jogadores especificados
+  - **Parâmetros**: 
+    - `ids` - IDs dos jogadores (mínimo 2)
+    - `ai=true` - Usar Ollama3 para análise (opcional)
+  - **Validações**: Pelo menos 2 IDs válidos
+  - **Resposta**:
+    ```json
+    {
+      "players": [
+        {
+          "player_id": 1,
+          "player_name": "João Silva",
+          "analysis": "...",
+          "insights": [...],
+          "rating": 8,
+          "position": "Atacante",
+          "team": "Flamengo",
+          "ai_used": true
+        }
+      ],
+      "comparison": {
+        "highest_rating": {...},
+        "most_goals": {...},
+        "most_tackles": {...},
+        "most_passes": {...}
+      },
+      "ai_comparative_analysis": "Análise comparativa detalhada gerada pelo Ollama3..."
+    }
+    ```
+  - **Status**: 200 OK
+  - **Erro**: 400 Bad Request (IDs insuficientes), 404 Not Found (jogadores não encontrados)
+
 ## 📝 Exemplos de Uso
 
 ### Exemplos para Postman/Insomnia
@@ -223,6 +342,40 @@ make check
 }
 ```
 
+### Exemplos de Análise com IA
+
+#### Analisar Jogador Específico
+**Método:** GET  
+**URL:** `http://localhost:8080/analyze/players/1?ai=true`  
+**Resposta esperada:**
+```json
+{
+    "player_id": 1,
+    "player_name": "João Silva",
+    "analysis": "João Silva demonstra características de um atacante moderno e versátil. Com 25 anos, está na idade ideal para desenvolvimento e consolidação de carreira. Sua média de 0.5 gols por jogo é impressionante, demonstrando excelente eficiência de finalização. A participação de 120 passes na temporada mostra que não é apenas um finalizador, mas também contribui para a construção do jogo. Sua eficiência de 123.0 pontos o classifica como um jogador de nível Bom, adequado para competições de nível médio a alto. Recomendo atenção especial ao seu potencial de evolução, considerando sua idade e versatilidade técnica.",
+    "insights": [
+        "Excelente eficiência de finalização com 0.5 gols por jogo",
+        "Participação ativa na construção do jogo com 120 passes",
+        "Idade ideal para desenvolvimento e consolidação",
+        "Versatilidade técnica como atacante moderno"
+    ],
+    "rating": 8,
+    "position": "Atacante",
+    "team": "Flamengo",
+    "ai_used": true
+}
+```
+
+#### Analisar Todos os Jogadores
+**Método:** GET  
+**URL:** `http://localhost:8080/analyze/players`  
+**Resposta:** Análise individual de cada jogador + análise comparativa geral
+
+#### Comparar Jogadores
+**Método:** GET  
+**URL:** `http://localhost:8080/analyze/compare?ids=1&ids=2&ids=3`  
+**Resposta:** Comparação detalhada entre os jogadores especificados
+
 ### Exemplos com cURL
 ```bash
 # Health check
@@ -246,6 +399,24 @@ curl -X PUT http://localhost:8080/players/1 \
 
 # Deletar jogador
 curl -X DELETE http://localhost:8080/players/1
+
+# Analisar jogador específico
+curl http://localhost:8080/analyze/players/1
+
+# Analisar jogador com IA (Ollama3)
+curl "http://localhost:8080/analyze/players/1?ai=true"
+
+# Analisar todos os jogadores
+curl http://localhost:8080/analyze/players
+
+# Analisar todos os jogadores com IA
+curl "http://localhost:8080/analyze/players?ai=true"
+
+# Comparar jogadores
+curl "http://localhost:8080/analyze/compare?ids=1&ids=2&ids=3"
+
+# Comparar jogadores com IA
+curl "http://localhost:8080/analyze/compare?ids=1&ids=2&ids=3&ai=true"
 ```
 
 ### Exemplos com PowerShell
@@ -262,6 +433,24 @@ $body = @{
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "http://localhost:8080/players" -Method Post -Body $body -ContentType "application/json"
+
+# Analisar jogador
+Invoke-RestMethod -Uri "http://localhost:8080/analyze/players/1" -Method Get
+
+# Analisar jogador com IA
+Invoke-RestMethod -Uri "http://localhost:8080/analyze/players/1?ai=true" -Method Get
+
+# Analisar todos os jogadores
+Invoke-RestMethod -Uri "http://localhost:8080/analyze/players" -Method Get
+
+# Analisar todos os jogadores com IA
+Invoke-RestMethod -Uri "http://localhost:8080/analyze/players?ai=true" -Method Get
+
+# Comparar jogadores
+Invoke-RestMethod -Uri "http://localhost:8080/analyze/compare?ids=1&ids=2" -Method Get
+
+# Comparar jogadores com IA
+Invoke-RestMethod -Uri "http://localhost:8080/analyze/compare?ids=1&ids=2&ai=true" -Method Get
 ```
 
 ## 🗄️ Modelo de Dados
@@ -300,19 +489,25 @@ go test ./handlers -cover
 ## 🐳 Configuração Docker
 
 ### Docker Compose
-O arquivo `docker-compose.yml` configura dois serviços:
+O arquivo `docker-compose.yml` configura três serviços:
 
 1. **go-backend**: Aplicação Go
    - Build do contexto `./go-backend`
    - Porta `8080:8080`
-   - Variáveis de ambiente para conexão com banco
-   - Dependência do serviço `db`
+   - Variáveis de ambiente para conexão com banco e Ollama
+   - Dependência dos serviços `db` e `ollama`
 
 2. **db**: Banco PostgreSQL
    - Imagem `postgres:15`
    - Porta `5432:5432`
    - Volume persistente para dados
    - Variáveis de ambiente configuradas
+
+3. **ollama**: Serviço Ollama3
+   - Imagem `ollama/ollama:latest`
+   - Porta `11434:11434`
+   - Volume persistente para modelos
+   - Download automático do modelo `llama3.2`
 
 ### Dockerfile
 O projeto utiliza um Dockerfile multi-stage para otimizar o tamanho da imagem final:
@@ -334,7 +529,10 @@ O projeto utiliza um Dockerfile multi-stage para otimizar o tamanho da imagem fi
 
 - **`cmd/main.go`**: Ponto de entrada da aplicação, configuração do servidor e rotas
 - **`handlers/playerHandler.go`**: Handlers HTTP para operações CRUD de jogadores
-- **`handlers/playerHandler_test.go`**: Testes automatizados dos handlers
+- **`handlers/playerHandler_test.go`**: Testes automatizados dos handlers de jogadores
+- **`handlers/analyzeHandler.go`**: Handlers HTTP para análise de jogadores com IA
+- **`handlers/analyzeHandler_test.go`**: Testes automatizados dos handlers de análise
+- **`handlers/ollamaHandler.go`**: Integração com Ollama3
 - **`models/player.go`**: Modelo de dados do jogador usando GORM
 
 ### Melhorias Implementadas
@@ -345,15 +543,13 @@ O projeto utiliza um Dockerfile multi-stage para otimizar o tamanho da imagem fi
 4. **Variáveis de Ambiente**: Configuração flexível via variáveis de ambiente
 5. **Testes Automatizados**: Cobertura de testes para handlers
 6. **Makefile**: Comandos úteis para desenvolvimento e deploy
-
-### Adicionando Novas Funcionalidades
-
-1. Crie novos modelos no diretório `models/`
-2. Implemente handlers no diretório `handlers/`
-3. Adicione testes em `handlers/*_test.go`
-4. Adicione novas rotas no arquivo `main.go`
-5. Execute `db.AutoMigrate()` para o novo modelo
-6. Atualize as dependências se necessário com `go mod tidy`
+7. **Análise com IA**: Sistema de análise automatizada de jogadores
+8. **Integração com Ollama3**: Análises mais naturais e contextuais
+9. **Prompts Especializados**: Prompts específicos para cada posição
+10. **Fallback Inteligente**: Sistema de fallback para análise estática
+11. **Comparação de Jogadores**: Funcionalidade para comparar performance entre jogadores
+12. **Insights Inteligentes**: Geração automática de insights baseados em dados
+13. **Rating System**: Sistema de pontuação de 1-10 para jogadores
 
 ## 🚀 Deploy
 
@@ -434,4 +630,110 @@ Para suporte, abra uma issue no repositório do projeto ou entre em contato atra
 
 ---
 
-**Nota**: Este é um projeto em desenvolvimento. Novas funcionalidades e melhorias estão sendo implementadas continuamente. 
+**Nota**: Este é um projeto em desenvolvimento. Novas funcionalidades e melhorias estão sendo implementadas continuamente.
+
+## 🤖 Funcionalidades de IA
+
+### Integração com Ollama3
+
+O Scout AI agora integra com o **Ollama3**, um modelo de linguagem local que permite análises mais sofisticadas e naturais dos jogadores. Esta integração oferece:
+
+#### **Vantagens da Integração com Ollama3:**
+- **Análises mais naturais**: Linguagem mais fluida e profissional
+- **Insights contextuais**: Análises baseadas em conhecimento de futebol
+- **Flexibilidade**: Funciona offline e localmente
+- **Personalização**: Prompts específicos para scouting
+- **Fallback inteligente**: Se Ollama não estiver disponível, usa análise estática
+
+#### **Como Usar a IA:**
+Adicione o parâmetro `?ai=true` aos endpoints de análise:
+
+```bash
+# Análise com IA
+GET /analyze/players/1?ai=true
+
+# Análise comparativa com IA
+GET /analyze/players?ai=true
+
+# Comparação de jogadores com IA
+GET /analyze/compare?ids=1&ids=2&ai=true
+```
+
+#### **Configuração do Ollama3:**
+O sistema está configurado para usar o modelo `llama3.2` por padrão, mas pode ser personalizado via variáveis de ambiente:
+
+```yaml
+environment:
+  - OLLAMA_BASE_URL=http://ollama:11434
+  - OLLAMA_MODEL=llama3.2
+  - OLLAMA_TEMPERATURE=0.7
+  - OLLAMA_TOP_P=0.9
+```
+
+#### **Prompts Especializados:**
+O sistema gera prompts específicos para cada posição:
+
+- **Atacantes**: Foco em finalização, participação no jogo e eficiência
+- **Meio-campistas**: Análise de visão de jogo, distribuição e marcação
+- **Zagueiros**: Avaliação defensiva e saída de bola
+- **Goleiros**: Comando de área e saída do gol
+
+### Análise Inteligente de Jogadores
+
+O Scout AI utiliza algoritmos inteligentes para analisar dados de jogadores e gerar insights valiosos para scouting:
+
+#### **Sistema de Rating (1-10)**
+- Calcula pontuação baseada em eficiência, idade e performance
+- Considera diferentes pesos para cada posição
+- Ajusta rating baseado na experiência do jogador
+
+#### **Geração de Insights**
+- **Baseados na Idade**: Identifica jogadores jovens com potencial ou experientes para liderança
+- **Baseados na Posição**: Análises específicas para atacantes, meio-campistas, zagueiros e goleiros
+- **Baseados na Performance**: Identifica jogadores com performance excepcional ou que precisam melhorar
+
+#### **Análise Comparativa**
+- Compara jogadores em diferentes categorias
+- Identifica melhores artilheiros, marcadores e passadores
+- Distribuição de posições no elenco
+- Estatísticas gerais do time
+
+#### **Recomendações Automáticas**
+- Sugere adequação para diferentes níveis de competição
+- Identifica jogadores prontos para times de alto nível
+- Recomenda tempo de desenvolvimento para jogadores jovens
+
+### Algoritmos Utilizados
+
+#### **Cálculo de Eficiência por Posição**
+```go
+// Atacante: Foco em gols e participação no jogo
+Efficiency = (Goals * 0.6) + (Passes * 0.4)
+
+// Meio-campista: Equilíbrio entre passes, marcação e gols
+Efficiency = (Passes * 0.5) + (Tackles * 0.3) + (Goals * 0.2)
+
+// Zagueiro: Foco em marcação e saída de bola
+Efficiency = (Tackles * 0.6) + (Passes * 0.4)
+
+// Goleiro: Foco em saída do gol
+Efficiency = (Tackles * 0.8) + (Passes * 0.2)
+```
+
+#### **Sistema de Rating**
+- **Base**: 5 pontos
+- **Eficiência > 200**: +3 pontos
+- **Eficiência > 150**: +2 pontos
+- **Eficiência > 100**: +1 ponto
+- **Eficiência < 50**: -1 ponto
+- **Idade ideal (25-30)**: +1 ponto
+- **Muito jovem (<20)**: -1 ponto
+
+### Adicionando Novas Funcionalidades
+
+1. Crie novos modelos no diretório `models/`
+2. Implemente handlers no diretório `handlers/`
+3. Adicione testes em `handlers/*_test.go`
+4. Adicione novas rotas no arquivo `main.go`
+5. Execute `db.AutoMigrate()` para o novo modelo
+6. Atualize as dependências se necessário com `go mod tidy` 
