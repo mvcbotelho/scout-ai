@@ -14,6 +14,7 @@ O Scout AI é uma aplicação backend desenvolvida em Go que fornece uma API RES
 - **PostgreSQL** - Banco de dados relacional
 - **Docker** - Containerização da aplicação
 - **Docker Compose** - Orquestração de containers
+- **Testify** - Framework de testes
 
 ## 📁 Estrutura do Projeto
 
@@ -27,7 +28,8 @@ scout-ai/
     ├── cmd/
     │   └── main.go            # Ponto de entrada da aplicação
     ├── handlers/
-    │   └── playerHandler.go   # Handlers para endpoints de jogadores
+    │   ├── playerHandler.go   # Handlers para endpoints de jogadores
+    │   └── playerHandler_test.go # Testes dos handlers
     ├── models/
     │   └── player.go          # Modelo de dados do jogador
     ├── Dockerfile             # Configuração do container Docker
@@ -87,6 +89,28 @@ go mod download
 go run cmd/main.go
 ```
 
+### Opção 3: Usando Makefile
+
+O projeto inclui um Makefile com comandos úteis:
+
+```bash
+# Ver todos os comandos disponíveis
+make help
+
+# Executar em modo desenvolvimento
+make dev
+
+# Construir e executar com Docker
+make docker-build
+make docker-up
+
+# Executar testes
+make test
+
+# Verificar status dos serviços
+make check
+```
+
 ## 🔧 Endpoints da API
 
 ### Health Check
@@ -100,6 +124,7 @@ go run cmd/main.go
 #### Criar Jogador
 - **POST** `/players`
   - **Descrição**: Cria um novo jogador
+  - **Validações**: Nome obrigatório, idade > 0
   - **Body**: 
     ```json
     {
@@ -113,6 +138,7 @@ go run cmd/main.go
     }
     ```
   - **Status**: 201 Created
+  - **Erro**: 400 Bad Request (dados inválidos)
 
 #### Listar Jogadores
 - **GET** `/players`
@@ -122,20 +148,82 @@ go run cmd/main.go
 #### Buscar Jogador por ID
 - **GET** `/players/:id`
   - **Descrição**: Retorna um jogador específico pelo ID
+  - **Validações**: ID deve ser um número válido
   - **Status**: 200 OK
+  - **Erro**: 404 Not Found (jogador não encontrado)
 
 #### Atualizar Jogador
 - **PUT** `/players/:id`
   - **Descrição**: Atualiza dados de um jogador
+  - **Validações**: ID válido, nome obrigatório, idade > 0
   - **Body**: Mesmo formato do POST
   - **Status**: 200 OK
+  - **Erro**: 404 Not Found (jogador não encontrado)
 
 #### Deletar Jogador
 - **DELETE** `/players/:id`
   - **Descrição**: Remove um jogador do sistema
+  - **Validações**: ID deve ser um número válido
   - **Status**: 200 OK
+  - **Erro**: 404 Not Found (jogador não encontrado)
 
-**Exemplos de uso:**
+## 📝 Exemplos de Uso
+
+### Exemplos para Postman/Insomnia
+
+#### Exemplo 1 - Atacante
+```json
+{
+    "name": "João Silva",
+    "age": 25,
+    "position": "Atacante",
+    "team": "Flamengo",
+    "goals": 15,
+    "tackles": 5,
+    "passes": 120
+}
+```
+
+#### Exemplo 2 - Meio-campista
+```json
+{
+    "name": "Pedro Santos",
+    "age": 28,
+    "position": "Meio-campo",
+    "team": "Palmeiras",
+    "goals": 8,
+    "tackles": 45,
+    "passes": 350
+}
+```
+
+#### Exemplo 3 - Zagueiro
+```json
+{
+    "name": "Carlos Oliveira",
+    "age": 32,
+    "position": "Zagueiro",
+    "team": "São Paulo",
+    "goals": 2,
+    "tackles": 120,
+    "passes": 180
+}
+```
+
+#### Exemplo 4 - Goleiro
+```json
+{
+    "name": "Rafael Costa",
+    "age": 29,
+    "position": "Goleiro",
+    "team": "Corinthians",
+    "goals": 0,
+    "tackles": 15,
+    "passes": 85
+}
+```
+
+### Exemplos com cURL
 ```bash
 # Health check
 curl http://localhost:8080/ping
@@ -160,21 +248,54 @@ curl -X PUT http://localhost:8080/players/1 \
 curl -X DELETE http://localhost:8080/players/1
 ```
 
+### Exemplos com PowerShell
+```powershell
+# Criar jogador
+$body = @{
+    name     = "João Silva"
+    age      = 25
+    position = "Atacante"
+    team     = "Flamengo"
+    goals    = 15
+    tackles  = 5
+    passes   = 120
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8080/players" -Method Post -Body $body -ContentType "application/json"
+```
+
 ## 🗄️ Modelo de Dados
 
 ### Player (Jogador)
 ```go
 type Player struct {
     gorm.Model        // ID, CreatedAt, UpdatedAt, DeletedAt
-    Name     string   `json:"name"`     // Nome do jogador
-    Age      int      `json:"age"`      // Idade
-    Position string   `json:"position"` // Posição (Atacante, Meio-campo, etc.)
-    Team     string   `json:"team"`     // Time atual
-    Goals    int      `json:"goals"`    // Número de gols
-    Tackles  int      `json:"tackles"`  // Número de tackles
-    Passes   int      `json:"passes"`   // Número de passes
+    Name     string   `json:"name" binding:"required" gorm:"not null"`     // Nome do jogador (obrigatório)
+    Age      int      `json:"age" binding:"required,min=1,max=100" gorm:"not null"`      // Idade (1-100)
+    Position string   `json:"position" binding:"required" gorm:"not null"` // Posição (obrigatório)
+    Team     string   `json:"team" binding:"required" gorm:"not null"`     // Time atual (obrigatório)
+    Goals    int      `json:"goals" binding:"min=0" gorm:"default:0"`    // Número de gols (>= 0)
+    Tackles  int      `json:"tackles" binding:"min=0" gorm:"default:0"`  // Número de tackles (>= 0)
+    Passes   int      `json:"passes" binding:"min=0" gorm:"default:0"`   // Número de passes (>= 0)
 }
 ```
+
+## 🧪 Testes
+
+O projeto inclui testes automatizados para os handlers:
+
+```bash
+# Executar todos os testes
+go test ./...
+
+# Executar testes com verbose
+go test ./handlers -v
+
+# Executar testes com cobertura
+go test ./handlers -cover
+```
+
+**Nota**: Os testes usam SQLite em memória e podem requerer dependências C no Windows.
 
 ## 🐳 Configuração Docker
 
@@ -204,6 +325,7 @@ O projeto utiliza um Dockerfile multi-stage para otimizar o tamanho da imagem fi
 - `github.com/gin-gonic/gin v1.10.1` - Framework web Gin
 - `gorm.io/gorm v1.25.9` - ORM para Go
 - `gorm.io/driver/postgres v1.4.6` - Driver PostgreSQL para GORM
+- `github.com/stretchr/testify v1.9.0` - Framework de testes
 - Dependências de suporte para JSON, validação, e outras funcionalidades
 
 ## 🔍 Desenvolvimento
@@ -212,15 +334,26 @@ O projeto utiliza um Dockerfile multi-stage para otimizar o tamanho da imagem fi
 
 - **`cmd/main.go`**: Ponto de entrada da aplicação, configuração do servidor e rotas
 - **`handlers/playerHandler.go`**: Handlers HTTP para operações CRUD de jogadores
+- **`handlers/playerHandler_test.go`**: Testes automatizados dos handlers
 - **`models/player.go`**: Modelo de dados do jogador usando GORM
+
+### Melhorias Implementadas
+
+1. **Validação de Dados**: Todos os endpoints validam dados de entrada
+2. **Tratamento de Erros**: Mensagens de erro em português e códigos HTTP apropriados
+3. **Verificação de Existência**: Endpoints verificam se recursos existem antes de operações
+4. **Variáveis de Ambiente**: Configuração flexível via variáveis de ambiente
+5. **Testes Automatizados**: Cobertura de testes para handlers
+6. **Makefile**: Comandos úteis para desenvolvimento e deploy
 
 ### Adicionando Novas Funcionalidades
 
 1. Crie novos modelos no diretório `models/`
 2. Implemente handlers no diretório `handlers/`
-3. Adicione novas rotas no arquivo `main.go`
-4. Execute `db.AutoMigrate()` para o novo modelo
-5. Atualize as dependências se necessário com `go mod tidy`
+3. Adicione testes em `handlers/*_test.go`
+4. Adicione novas rotas no arquivo `main.go`
+5. Execute `db.AutoMigrate()` para o novo modelo
+6. Atualize as dependências se necessário com `go mod tidy`
 
 ## 🚀 Deploy
 
@@ -293,7 +426,7 @@ Este projeto está sob a licença [MIT](LICENSE).
 
 ## 👨‍💻 Autor
 
-**Marcos Botelho** - [GitHub](https://github.com/mvcbotelho) | [LinkedIn](https://www.linkedin.com/in/mvcbotelho/)
+**Marcus Botelho** - [GitHub](https://github.com/mvcbotelho) | [LinkedIn](https://www.linkedin.com/in/mvcbotelho/)
 
 ## 📞 Suporte
 
