@@ -1,4 +1,4 @@
-# Binários Go
+# Binários compilados
 *.exe
 *.exe~
 *.dll
@@ -9,41 +9,49 @@
 *.test
 *.out
 
-# Cobertura de testes
+# Arquivos de cobertura de código
 *.cover
 
-# Arquivos temporários
-*.tmp
-*.temp
+# Diretórios de build
+bin/
+dist/
+build/
 
-# Logs
-*.log
+# Dependências
+vendor/
 
-# Arquivos de IDE/Editor
+# Arquivos de IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Arquivos do sistema
+# Arquivos de sistema
 .DS_Store
 Thumbs.db
 
-# Docker
-.dockerignore
+# Logs
+*.log
 
-# Variáveis de ambiente
+# Arquivos temporários
+tmp/
+temp/
+
+# Arquivos de ambiente
 .env
 .env.local
 .env.production
 
-# Arquivos de build
-build/
-dist/
+# Arquivos Docker
+.dockerignore
 
-# Dependências (se houver)
-vendor/
+# Arquivos de backup
+*.bak
+*.backup
 
 # Arquivos de cache
-.cache/ 
+.cache/
+
+# Arquivos específicos do Go
+go.work 
